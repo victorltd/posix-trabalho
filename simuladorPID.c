@@ -10,6 +10,9 @@
 #include <semaphore.h>
 #include <mqueue.h>
 
+
+//so para ver o que acontece
+
 #define SHARED_MEMORY_NAME "/mem_sensores"
 #define SHARED_MEMORY_SIZE sizeof(DadosSensores)
 #define MESSAGE_QUEUE_NAME "/fila_comandos"
