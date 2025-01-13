@@ -10,6 +10,8 @@
 #include <sys/types.h>
 #include <mqueue.h>
 
+//colocar o pid no simulador
+
 typedef struct {
     float velocidade;
     float rpm;
