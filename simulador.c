@@ -105,7 +105,7 @@ void *sensor_rpm(void *dados) {
     while (1) {
         pthread_mutex_lock(&sensores->mutex);
         sensores->rpm = estados.estado_rpm;
-        printf("[Sensor RPM] Nova leitura: %.2f RPM\n", sensores->rpm);
+        //printf("[Sensor RPM] Nova leitura: %.2f RPM\n", sensores->rpm);
         pthread_mutex_unlock(&sensores->mutex);
         sleep(1);
     }
@@ -117,7 +117,7 @@ void *sensor_temperatura(void *dados) {
     while (1) {
         pthread_mutex_lock(&sensores->mutex);
         sensores->temperatura = estados.estado_temperatura;
-        printf("[Sensor Temperatura] Nova leitura: %.2f ºC\n", sensores->temperatura);
+        //printf("[Sensor Temperatura] Nova leitura: %.2f ºC\n", sensores->temperatura);
         pthread_mutex_unlock(&sensores->mutex);
         sleep(1);
     }
@@ -129,7 +129,7 @@ void *sensor_proximidade(void *dados) {
     while (1) {
         pthread_mutex_lock(&sensores->mutex);
         sensores->proximidade = (rand() % 100) + ((float)rand() / RAND_MAX);
-        printf("[Sensor Proximidade] Nova leitura: %.2f m\n", sensores->proximidade);
+        //printf("[Sensor Proximidade] Nova leitura: %.2f m\n", sensores->proximidade);
         pthread_mutex_unlock(&sensores->mutex);
         sleep(1);
     }
