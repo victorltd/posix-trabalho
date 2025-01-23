@@ -10,27 +10,29 @@
 #include <sys/types.h>
 #include <mqueue.h>
 
-//colocar o pid no simulador
-
+// Estrutura para armazenar os dados dos sensores
 typedef struct {
     float velocidade;
     float rpm;
     float temperatura;
     float proximidade;
-    int comando; // Novo campo para comando
-    pthread_mutex_t mutex;
+    int comando; // Campo para armazenar o comando recebido
+    pthread_mutex_t mutex; // Mutex para sincronização
 } DadosSensores;
 
+// Estrutura para mensagens do painel
 typedef struct {
     int comando;
     char descricao[100];
 } PainelMsg;
 
+// Definições para memória compartilhada e fila de mensagens
 #define SHARED_MEMORY_NAME "/mem_sensores"
 #define SHARED_MEMORY_SIZE sizeof(DadosSensores)
 #define MESSAGE_QUEUE_NAME "/fila_comandos"
 #define MESSAGE_QUEUE_SIZE sizeof(PainelMsg)
 
+// Variáveis globais para controle de execução e contadores de ocorrências
 volatile sig_atomic_t executar = 1;
 int ocorrencias_velocidade = 0;
 int ocorrencias_acelerar = 0;
@@ -40,6 +42,7 @@ int ocorrencias_seta_esquerda = 0;
 int ocorrencias_farol_baixo = 0;
 int ocorrencias_farol_alto = 0;
 
+// Função para tratar sinais (SIGUSR1, SIGCONT, SIGUSR2)
 void signal_handler(int signo) {
     if (signo == SIGUSR1) {
         executar = 0; // Pausar
@@ -50,7 +53,7 @@ void signal_handler(int signo) {
     }
 }
 
-// Adicione essa função para finalizar o programa corretamente
+// Função para finalizar o programa corretamente
 void finalizar_programa(DadosSensores *sensores, pthread_t thread_comandos, int fd) {
     // Finalizar thread
     pthread_cancel(thread_comandos);
@@ -77,6 +80,7 @@ void finalizar_programa(DadosSensores *sensores, pthread_t thread_comandos, int 
 
 // Função para processar comandos recebidos do painel
 void *processar_comandos(void *arg) {
+    // Abrir a fila de mensagens para leitura
     mqd_t mq = mq_open(MESSAGE_QUEUE_NAME, O_RDONLY | O_CREAT, 0666, NULL);
     if (mq == (mqd_t)-1) {
         perror("[Controlador] Erro ao abrir fila de mensagens");
@@ -86,11 +90,13 @@ void *processar_comandos(void *arg) {
     PainelMsg comando;
     DadosSensores *sensores = (DadosSensores *)arg;
     while (executar != -1) {
+        // Receber comandos da fila de mensagens
         if (mq_receive(mq, (char *)&comando, sizeof(comando), NULL) >= 0) {
             printf("[Controlador] Comando recebido: %s\n", comando.descricao);
 
+            // Atualizar o comando na memória compartilhada
             pthread_mutex_lock(&sensores->mutex);
-            sensores->comando = comando.comando; // Enviar comando para o simulador
+            sensores->comando = comando.comando;
             pthread_mutex_unlock(&sensores->mutex);
 
             // Incrementar contadores específicos
@@ -106,22 +112,26 @@ void *processar_comandos(void *arg) {
         }
     }
 
+    // Fechar e desvincular a fila de mensagens
     mq_close(mq);
     mq_unlink(MESSAGE_QUEUE_NAME);
     pthread_exit(NULL);
 }
 
 int main() {
+    // Configurar os manipuladores de sinal
     signal(SIGUSR1, signal_handler);
     signal(SIGCONT, signal_handler);
     signal(SIGUSR2, signal_handler);
 
+    // Abrir a memória compartilhada
     int fd = shm_open(SHARED_MEMORY_NAME, O_RDWR, 0666);
     if (fd == -1) {
         perror("[Controlador] Erro ao abrir memória compartilhada");
         exit(1);
     }
 
+    // Mapear a memória compartilhada
     DadosSensores *sensores = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (sensores == MAP_FAILED) {
         perror("[Controlador] Erro ao mapear memória compartilhada");

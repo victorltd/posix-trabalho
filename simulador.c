@@ -10,10 +10,10 @@
 #include <semaphore.h>
 #include <mqueue.h>
 
-#define SHARED_MEMORY_NAME "/mem_sensores"
-#define SHARED_MEMORY_SIZE sizeof(DadosSensores)
-#define MESSAGE_QUEUE_NAME "/fila_comandos"
-#define MESSAGE_QUEUE_SIZE sizeof(PainelMsg)
+#define SHARED_MEMORY_NAME "/mem_sensores" // Nome da memória compartilhada
+#define SHARED_MEMORY_SIZE sizeof(DadosSensores) // Tamanho da memória compartilhada
+#define MESSAGE_QUEUE_NAME "/fila_comandos" // Nome da fila de mensagens
+#define MESSAGE_QUEUE_SIZE sizeof(PainelMsg) // Tamanho da fila de mensagens
 
 // Estrutura para armazenar os dados dos sensores
 typedef struct {
@@ -38,7 +38,7 @@ typedef struct {
     float estado_temperatura;
 } EstadosInternos;
 
-EstadosInternos estados = {0};
+EstadosInternos estados = {0}; // Inicializa os estados internos
 
 // Função para simular inércia física
 void atualizar_estados(int comando) {
@@ -74,25 +74,27 @@ void *ler_comandos(void *dados) {
     DadosSensores *sensores = (DadosSensores *)dados;
     while (1) {
         pthread_mutex_lock(&sensores->mutex);
-        int comando = sensores->comando;
+        int comando = sensores->comando; // Lê o comando da memória compartilhada
         sensores->comando = 0; // Resetar comando após leitura
         pthread_mutex_unlock(&sensores->mutex);
 
-        if (comando != 0) {
+        if (comando != 0) { // Se houver um comando, atualiza os estados
             atualizar_estados(comando);
         }
 
-        sleep(1);
+        sleep(1); // Intervalo entre leituras
     }
     return NULL;
 }
 
 // Funções dos sensores
+
+// Função para simular o sensor de velocidade
 void *sensor_velocidade(void *dados) {
     DadosSensores *sensores = (DadosSensores *)dados;
     while (1) {
         pthread_mutex_lock(&sensores->mutex);
-        sensores->velocidade = estados.estado_velocidade;
+        sensores->velocidade = estados.estado_velocidade; // Atualiza a velocidade na memória compartilhada
         printf("[Sensor Velocidade] Nova leitura: %.2f km/h\n", sensores->velocidade);
         pthread_mutex_unlock(&sensores->mutex);
         sleep(1); // Simula intervalo entre leituras
@@ -100,47 +102,50 @@ void *sensor_velocidade(void *dados) {
     return NULL;
 }
 
+// Função para simular o sensor de RPM
 void *sensor_rpm(void *dados) {
     DadosSensores *sensores = (DadosSensores *)dados;
     while (1) {
         pthread_mutex_lock(&sensores->mutex);
-        sensores->rpm = estados.estado_rpm;
+        sensores->rpm = estados.estado_rpm; // Atualiza o RPM na memória compartilhada
         //printf("[Sensor RPM] Nova leitura: %.2f RPM\n", sensores->rpm);
         pthread_mutex_unlock(&sensores->mutex);
-        sleep(1);
+        sleep(1); // Simula intervalo entre leituras
     }
     return NULL;
 }
 
+// Função para simular o sensor de temperatura
 void *sensor_temperatura(void *dados) {
     DadosSensores *sensores = (DadosSensores *)dados;
     while (1) {
         pthread_mutex_lock(&sensores->mutex);
-        sensores->temperatura = estados.estado_temperatura;
+        sensores->temperatura = estados.estado_temperatura; // Atualiza a temperatura na memória compartilhada
         //printf("[Sensor Temperatura] Nova leitura: %.2f ºC\n", sensores->temperatura);
         pthread_mutex_unlock(&sensores->mutex);
-        sleep(1);
+        sleep(1); // Simula intervalo entre leituras
     }
     return NULL;
 }
 
+// Função para simular o sensor de proximidade
 void *sensor_proximidade(void *dados) {
     DadosSensores *sensores = (DadosSensores *)dados;
     while (1) {
         pthread_mutex_lock(&sensores->mutex);
-        sensores->proximidade = (rand() % 100) + ((float)rand() / RAND_MAX);
+        sensores->proximidade = (rand() % 100) + ((float)rand() / RAND_MAX); // Gera um valor aleatório para proximidade
         //printf("[Sensor Proximidade] Nova leitura: %.2f m\n", sensores->proximidade);
         pthread_mutex_unlock(&sensores->mutex);
-        sleep(1);
+        sleep(1); // Simula intervalo entre leituras
     }
     return NULL;
 }
 
 int main() {
     pthread_t thread_velocidade, thread_rpm, thread_temperatura, thread_proximidade, thread_comandos;
-    DadosSensores sensores = {0};
+    DadosSensores sensores = {0}; // Inicializa a estrutura de sensores
 
-    pthread_mutex_init(&sensores.mutex, NULL);
+    pthread_mutex_init(&sensores.mutex, NULL); // Inicializa o mutex
 
     // Criar memória compartilhada
     int fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
@@ -148,13 +153,13 @@ int main() {
         perror("[Simulador] Erro ao criar memória compartilhada");
         exit(1);
     }
-    ftruncate(fd, SHARED_MEMORY_SIZE);
+    ftruncate(fd, SHARED_MEMORY_SIZE); // Define o tamanho da memória compartilhada
     DadosSensores *shared_mem = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (shared_mem == MAP_FAILED) {
         perror("[Simulador] Erro ao mapear memória compartilhada");
         exit(1);
     }
-    memcpy(shared_mem, &sensores, sizeof(DadosSensores));
+    memcpy(shared_mem, &sensores, sizeof(DadosSensores)); // Copia os dados iniciais para a memória compartilhada
 
     // Criar threads para os sensores e leitura de comandos
     pthread_create(&thread_velocidade, NULL, sensor_velocidade, (void *)shared_mem);
@@ -170,10 +175,10 @@ int main() {
     pthread_join(thread_proximidade, NULL);
     pthread_join(thread_comandos, NULL);
 
-    pthread_mutex_destroy(&sensores.mutex);
-    munmap(shared_mem, SHARED_MEMORY_SIZE);
-    close(fd);
-    shm_unlink(SHARED_MEMORY_NAME);
+    pthread_mutex_destroy(&sensores.mutex); // Destrói o mutex
+    munmap(shared_mem, SHARED_MEMORY_SIZE); // Desmapeia a memória compartilhada
+    close(fd); // Fecha o descritor de arquivo
+    shm_unlink(SHARED_MEMORY_NAME); // Remove a memória compartilhada
 
     return 0;
 }

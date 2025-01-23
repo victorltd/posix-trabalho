@@ -2,6 +2,9 @@
 
 Este projeto consiste em três módulos principais: **Controlador**, **Simulador** e **Painel Interativo**, que juntos formam um sistema integrado para monitorar, controlar e visualizar sensores de um veículo. O projeto utiliza conceitos como memória compartilhada, comunicação entre processos, filas de mensagens, threads e manipulação de sinais, além de incluir um painel gráfico para melhorar a interação do usuário.
 
+O link do vídeo, demonstrando o seu funcionamento é o : https://youtu.be/-7YdMUeo4HQ
+
+
 ---
 
 ## Sumário
@@ -103,7 +106,7 @@ make run
 Em outro terminal, inicie o painel:
 
 ```bash
-./make run_painel
+make run_painel
 ```
 
 
